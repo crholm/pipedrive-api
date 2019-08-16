@@ -137,17 +137,18 @@ func (s *ActivitiesService) Create(ctx context.Context, opt *ActivitiesCreateOpt
 // ActivitiesCreateOptions specifices the optional parameters to the
 // ActivitiesService.Update method.
 type ActivitiesCreateOptions struct {
-	Subject      string      `url:"subject,omitempty"`
-	Done         uint8       `url:"done,omitempty"`
-	Type         string      `url:"type,omitempty"`
-	DueDate      string      `url:"due_date,omitempty"`
-	DueTime      string      `url:"due_time,omitempty"`
-	Duration     string      `url:"duration,omitempty"`
-	UserID       uint        `url:"user_id,omitempty"`
-	DealID       uint        `url:"user_id,omitempty"`
-	PersonID     uint        `url:"person_id,omitempty"`
-	Participants interface{} `url:"participants,omitempty"`
-	OrgID        uint        `url:"org_id,omitempty"`
+	Subject      string      `json:"subject,omitempty url:"subject,omitempty"`
+	Done         int8        `json:"done" url:"done"`
+	Type         string      `json:"type,omitempty url:"type,omitempty"`
+	DueDate      string      `json:"due_date,omitempty" url:"due_date,omitempty"`
+	DueTime      string      `json:"due_time,omitempty" url:"due_time,omitempty"`
+	Duration     string      `json:"duration,omitempty" url:"duration,omitempty"`
+	UserID       int         `json:"user_id,omitempty" url:"user_id,omitempty"`
+	DealID       int         `json:"deal_id,omitempty" url:"deal_id,omitempty"`
+	PersonID     int         `json:"person_id,omitempty" url:"person_id,omitempty"`
+	Participants interface{} `json:"participants,omitempty" url:"participants,omitempty"`
+	OrgID        int         `json:"org_id,omitempty url:"org_id,omitempty"`
+	Note         string      `json:"note,omitempty url:"note,omitempty"`
 }
 
 // Update an activity

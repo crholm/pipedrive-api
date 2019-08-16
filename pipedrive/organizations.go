@@ -3,7 +3,10 @@ package pipedrive
 import (
 	"context"
 	"fmt"
+	"github.com/json-iterator/go"
+	"github.com/modfin/kv"
 	"net/http"
+	"reflect"
 )
 
 // OrganizationsService handles organization related
@@ -14,8 +17,8 @@ type OrganizationsService service
 
 // Organization represents a Pipedrive organization.
 type Organization struct {
-	ID        int `json:"id"`
-	CompanyID int `json:"company_id"`
+	ID        int             `json:"id"`
+	CompanyID int             `json:"company_id"`
 	OwnerID   struct {
 		ID         int    `json:"id"`
 		Name       string `json:"name"`
@@ -71,6 +74,60 @@ type Organization struct {
 	AddressFormattedAddress         interface{} `json:"address_formatted_address"`
 	OwnerName                       string      `json:"owner_name"`
 	CcEmail                         string      `json:"cc_email"`
+
+	X map[string]interface{} `json:"-"`
+}
+
+
+func (m *Organization) UnmarshalJSON(data []byte) error {
+	type organization Organization
+	o := organization{}
+	err := jsoniter.Unmarshal(data, &o.X)
+	if err != nil {
+		return err
+	}
+	err = jsoniter.Unmarshal(data, &o)
+	if err != nil {
+		return err
+	}
+	t := reflect.TypeOf(o)
+	for i := 0; i < t.NumField(); i++{
+		field := t.Field(i)
+		delete(o.X, field.Tag.Get("json"))
+	}
+	*m = Organization(o)
+
+	return nil
+}
+
+
+func (m Organization) MarshalJSON() ([]byte, error){
+	type organization Organization
+	o := organization(m)
+	data, err := jsoniter.Marshal(o)
+	if err != nil{
+		return nil, err
+	}
+	extras, err := jsoniter.Marshal(o.X)
+	if err != nil{
+		return nil, err
+	}
+
+	if len(extras) > 2 {
+		extras = append([]byte(","), extras[1:len(extras)-1]...)
+	}
+
+	data = append(data[:len(data)-1], extras...)
+	data = append(data, '}')
+
+	return data, nil
+}
+
+func (m Organization) Get(key string) *kv.KV {
+	return kv.New(key, m.X[key])
+}
+func (m Organization) Set(key string, val interface{}){
+	m.X[key] = val
 }
 
 func (o Organization) String() string {
@@ -94,7 +151,7 @@ type OrganizationResponse struct {
 // OrganizationFindOptions specifices the optional parameters to the
 // OrganizationsService.Create method.
 type OrganizationFindOptions struct {
-	Term      	  string    `url:"term"`
+	Term string `url:"term"`
 }
 
 // OrganizationCreateOptions specifices the optional parameters to the
@@ -106,12 +163,19 @@ type OrganizationCreateOptions struct {
 	AddTime   Timestamp `json:"add_time"`
 }
 
+// OrganizationFieldCreateOptions specifices the optional parameters to the
+// OrganizationFieldsService.Create method.
+type OrganizationListOptions struct {
+	Start      int    `url:"start"`
+	Limit      int    `url:"limit"`
+}
+
 // Find all organizations.
 //
 // Pipedrive API docs: https://developers.pipedrive.com/docs/api/v1/#!/Organizations/get_organizations_find
 func (s *OrganizationsService) Find(ctx context.Context, opt *OrganizationFindOptions) (*OrganizationsResponse, *Response, error) {
 	req, err := s.client.NewRequest(http.MethodGet, "/organizations/find", struct {
-		Term      		string    `url:"term"`
+		Term string `url:"term"`
 	}{
 		opt.Term,
 	}, nil)
@@ -134,8 +198,8 @@ func (s *OrganizationsService) Find(ctx context.Context, opt *OrganizationFindOp
 // List all organizations.
 //
 // Pipedrive API docs: https://developers.pipedrive.com/docs/api/v1/#!/Organizations/get_organizations
-func (s *OrganizationsService) List(ctx context.Context) (*OrganizationsResponse, *Response, error) {
-	req, err := s.client.NewRequest(http.MethodGet, "/organizations", nil, nil)
+func (s *OrganizationsService) List(ctx context.Context, opt *OrganizationListOptions ) (*OrganizationsResponse, *Response, error) {
+	req, err := s.client.NewRequest(http.MethodGet, "/organizations", opt, nil)
 
 	if err != nil {
 		return nil, nil, err
@@ -151,6 +215,71 @@ func (s *OrganizationsService) List(ctx context.Context) (*OrganizationsResponse
 
 	return record, resp, nil
 }
+
+
+func (s *OrganizationsService) Get(ctx context.Context, orgId int ) (*OrganizationResponse, *Response, error) {
+	req, err := s.client.NewRequest(http.MethodGet, fmt.Sprintf("/organizations/%v", orgId), nil, nil)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var record *OrganizationResponse
+
+	resp, err := s.client.Do(ctx, req, &record)
+
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return record, resp, nil
+}
+
+func (s *OrganizationsService) ListDeals(ctx context.Context, orgId int ) (*DealsResponse, *Response, error) {
+	req, err := s.client.NewRequest(http.MethodGet, fmt.Sprintf("/organizations/%v/deals", orgId), nil,nil)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var record *DealsResponse
+
+	resp, err := s.client.Do(ctx, req, &record)
+
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return record, resp, nil
+}
+
+
+
+
+
+// Updata a organization.
+//
+// Pipedrive API docs: https://developers.pipedrive.com/docs/api/v1/#!/Organizations/put_organizations_id
+func (s *OrganizationsService) Update(ctx context.Context, organization Organization) (*OrganizationsResponse, *Response, error) {
+
+	req, err := s.client.NewRequest(http.MethodPut, fmt.Sprintf("/organizations/%d", organization.ID), nil, organization)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var record *OrganizationsResponse
+
+	resp, err := s.client.Do(ctx, req, &record)
+
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return record, resp, nil
+}
+
+
 
 // Create a new organization.
 //
@@ -182,7 +311,6 @@ func (s *OrganizationsService) Create(ctx context.Context, opt *OrganizationCrea
 
 	return record, resp, nil
 }
-
 
 // Merge organizations.
 //

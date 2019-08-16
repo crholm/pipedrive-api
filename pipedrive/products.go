@@ -44,6 +44,22 @@ type Product struct {
 		Cost         int    `json:"cost"`
 		OverheadCost int    `json:"overhead_cost"`
 	} `json:"prices"`
+	ProductVariations []ProductVariation `json:"product_variations"`
+}
+
+type ProductVariation struct {
+	Description interface{} `json:"description"`
+	ID          int         `json:"id"`
+	Name        string      `json:"name"`
+	Prices      []struct {
+		Comment        string `json:"comment"`
+		Cost           int    `json:"cost"`
+		Currency       string `json:"currency"`
+		ID             int    `json:"id"`
+		Price          int    `json:"price"`
+		PriceFormatted string `json:"price_formatted"`
+	} `json:"prices"`
+	ProductID int `json:"product_id"`
 }
 
 func (p Product) String() string {

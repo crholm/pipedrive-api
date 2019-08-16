@@ -107,6 +107,31 @@ type Deal struct {
 	PersonHidden                                 bool        `json:"person_hidden"`
 }
 
+type DealProduct struct {
+	ActiveFlag         bool        `json:"active_flag,omitempty"`
+	AddTime            string      `json:"add_time,omitempty"`
+	Comments           interface{} `json:"comments,omitempty"`
+	Currency           string      `json:"currency,omitempty"`
+	DealID             int         `json:"deal_id,omitempty"`
+	DiscountPercentage int         `json:"discount_percentage,omitempty"`
+	Duration           int         `json:"duration,omitempty"`
+	DurationUnit       interface{} `json:"duration_unit,omitempty"`
+	EnabledFlag        bool        `json:"enabled_flag,omitempty"`
+	ID                 int         `json:"id,omitempty"`
+	ItemPrice          int         `json:"item_price,omitempty"`
+	LastEdit           interface{} `json:"last_edit,omitempty"`
+	Name               string      `json:"name,omitempty"`
+	OrderNr            int         `json:"order_nr,omitempty"`
+	ProductID          int         `json:"product_id,omitempty"`
+	ProductVariationID int         `json:"product_variation_id,omitempty"`
+	Quantity           int         `json:"quantity,omitempty"`
+	QuantityFormatted  string      `json:"quantity_formatted,omitempty"`
+	Sum                int         `json:"sum,omitempty"`
+	SumFormatted       string      `json:"sum_formatted,omitempty"`
+	SumNoDiscount      int         `json:"sum_no_discount,omitempty"`
+	Tax                int         `json:"tax,omitempty"`
+}
+
 func (d Deal) String() string {
 	return Stringify(d)
 }
@@ -123,6 +148,55 @@ type DealResponse struct {
 	Success        bool           `json:"success,omitempty"`
 	Data           Deal           `json:"data,omitempty"`
 	AdditionalData AdditionalData `json:"additional_data,omitempty"`
+}
+
+// DealProductResponse represents multiple deals response.
+type DealProductResponse struct {
+	Success        bool           `json:"success,omitempty"`
+	Data           []DealProduct  `json:"data,omitempty"`
+	AdditionalData AdditionalData `json:"additional_data,omitempty"`
+}
+
+// ListUpdates about a deal.
+//
+// Pipedrive API docs: https://developers.pipedrive.com/docs/api/v1/#!/Deals/get_deals_id_flow
+func (s *DealService) ListProducts(ctx context.Context, id int) (*DealProductResponse, *Response, error) {
+	uri := fmt.Sprintf("/deals/%v/products", id)
+	req, err := s.client.NewRequest(http.MethodGet, uri, nil, nil)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var record *DealProductResponse
+
+	resp, err := s.client.Do(ctx, req, &record)
+
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return record, resp, nil
+}
+
+
+func (s *DealService) AttachProduct(ctx context.Context, id int, product DealProduct) (*DealProductResponse, *Response, error) {
+	uri := fmt.Sprintf("/deals/%v/products", id)
+	req, err := s.client.NewRequest(http.MethodPost, uri, nil, product)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var record *DealProductResponse
+
+	resp, err := s.client.Do(ctx, req, &record)
+
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return record, resp, nil
 }
 
 // ListUpdates about a deal.
@@ -170,11 +244,18 @@ func (s *DealService) Find(ctx context.Context, term string) (*DealsResponse, *R
 	return record, resp, nil
 }
 
+// OrganizationFieldCreateOptions specifices the optional parameters to the
+// OrganizationFieldsService.Create method.
+type DealListOptions struct {
+	Start int `url:"start"`
+	Limit int `url:"limit"`
+}
+
 // List all deals.
 //
 // Pipedrive API docs: https://developers.pipedrive.com/docs/api/v1/#!/Deals/get_deals
-func (s *DealService) List(ctx context.Context) (*DealsResponse, *Response, error) {
-	req, err := s.client.NewRequest(http.MethodGet, "/deals", nil, nil)
+func (s *DealService) List(ctx context.Context, opt *DealListOptions) (*DealsResponse, *Response, error) {
+	req, err := s.client.NewRequest(http.MethodGet, "/deals", opt, nil)
 
 	if err != nil {
 		return nil, nil, err
@@ -250,7 +331,7 @@ type DealsUpdateOptions struct {
 
 // Update a deal.
 // Pipedrive API docs: https://developers.pipedrive.com/docs/api/v1/#!/Deals/put_deals_id
-func (s *DealService) Update(ctx context.Context, id int, opt *DealsUpdateOptions) (*Response, error) {
+func (s *DealService) Update(ctx context.Context, id int, opt interface{}) (*Response, error) {
 	uri := fmt.Sprintf("/deals/%v", id)
 	req, err := s.client.NewRequest(http.MethodPut, uri, nil, opt)
 
