@@ -127,6 +127,9 @@ func (m Organization) Get(key string) *kv.KV {
 	return kv.New(key, m.X[key])
 }
 func (m Organization) Set(key string, val interface{}){
+	if m.X == nil{
+		m.X = make(map[string]interface{})
+	}
 	m.X[key] = val
 }
 
